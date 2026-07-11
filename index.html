@@ -2,232 +2,62 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>BallRanger.io</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BallRanger.io - 3D Brawler</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Include Three.js via global CDN first to guarantee dependency resolution -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #0a0f1d;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-        #three-canvas-container {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-        .overlay-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: rgba(10, 15, 29, 0.85);
-            padding: 20px;
-        }
-        .lobby-dashboard {
-            background: rgba(20, 26, 46, 0.9);
-            border: 2px solid #00ffcc;
-            border-radius: 16px;
-            padding: 25px;
-            width: 90%;
-            max-width: 500px;
-            text-align: center;
-            box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
-            margin-bottom: 20px;
-        }
-        .shop-box {
-            background: rgba(30, 38, 64, 0.8);
-            border: 1px solid #3399ff;
-            border-radius: 12px;
-            padding: 15px;
-            margin: 15px 0;
-        }
-        .hud-header {
-            position: absolute;
-            top: 20px;
-            width: 100%;
-            padding: 0 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 15;
-            pointer-events: none;
-        }
-        .hud-coin {
-            background: rgba(20, 26, 46, 0.8);
-            border: 1px solid #ffcc00;
-            padding: 8px 16px;
-            border-radius: 20px;
-            color: #ffcc00;
-            font-weight: bold;
-            font-size: 18px;
-            pointer-events: auto;
-        }
-        .btn-ui {
-            background: linear-gradient(135deg, #00ffcc, #3399ff);
-            border: none;
-            color: #0a0f1d;
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 15px rgba(0, 255, 204, 0.3);
-        }
-        .btn-ui:active {
-            transform: scale(0.95);
-        }
-        .btn-ui.disabled {
-            background: #445175;
-            color: #8899bb;
-            box-shadow: none;
-            cursor: not-allowed;
-        }
-        .btn-main-start {
-            font-size: 24px;
-            padding: 16px 48px;
-            border-radius: 30px;
-            background: linear-gradient(135deg, #ff3366, #ffcc00);
-            box-shadow: 0 6px 25px rgba(2ff, 51, 102, 0.4);
-        }
-        #ingame-ui-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 5;
-            display: none;
-            pointer-events: none;
-        }
-        .joystick-zone {
-            position: absolute;
-            bottom: 40px;
-            left: 40px;
-            width: 150px;
-            height: 150px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            pointer-events: auto;
-        }
-        .joystick-handle {
-            position: absolute;
-            top: 50px;
-            left: 50px;
-            width: 50px;
-            height: 50px;
-            background: #00ffcc;
-            border-radius: 50%;
-            box-shadow: 0 0 15px #00ffcc;
-        }
-        .action-zone {
-            position: absolute;
-            bottom: 40px;
-            right: 40px;
-            display: flex;
-            gap: 20px;
-            pointer-events: auto;
-        }
-        .btn-action {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            border: 2px solid #ff3366;
-            background: rgba(255, 51, 102, 0.2);
-            color: #fff;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        .btn-action:active {
-            background: #ff3366;
-        }
-        #center-alert {
-            position: absolute;
-            top: 30%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #ff3366;
-            font-size: 32px;
-            font-weight: bold;
-            text-shadow: 0 0 20px rgba(255, 51, 102, 0.8);
-            z-index: 20;
-            display: none;
-            pointer-events: none;
-        }
-    </style>
 </head>
 <body>
-
+    <!-- The dedicated viewport container for the 3D canvas -->
     <div id="three-canvas-container"></div>
 
+    <!-- Persistent Global HUD for tracking currencies -->
     <div class="hud-header">
         <div class="hud-coin" id="hud-coin-amount">0G</div>
     </div>
 
-    <div id="center-alert">ALERT</div>
+    <!-- Dynamic Central Notification Banner -->
+    <div id="center-alert">SYSTEM READY</div>
 
+    <!-- Primary Menu Overlay Layer (Lobby Screen) -->
     <div class="overlay-layer" id="lobby-layer">
         <div class="lobby-dashboard">
-            <h1 style="color: #fff; margin-bottom: 10px; letter-spacing: 2px;">BALLRANGER.IO</h1>
-            <p style="color: #8899bb;">Select multiplier ad options below to buff mass:</p>
+            <h1 class="lobby-title">BALLRANGER.IO</h1>
+            <p class="lobby-subtitle">Select multiplier options below to buffer your starting mass:</p>
             
-            <div style="margin: 20px 0; display: flex; justify-content: center; gap: 15px;">
+            <div class="multiplier-container">
+                <button class="btn-ui active" id="btn-ad-x1">NORMAL VOL</button>
                 <button class="btn-ui" id="btn-ad-x2">AD VOL x2</button>
                 <button class="btn-ui" id="btn-ad-x5">AD VOL x5</button>
             </div>
 
             <div class="shop-box">
-                <h3 style="color: #3399ff; margin-bottom: 10px;">WEAPON SHOP</h3>
-                <button class="btn-ui" id="btn-buy-shield" style="width: 100%;">SHIELD (500G)</button>
+                <h3 class="shop-title">WEAPON & UTILITY SHOP</h3>
+                <button class="btn-ui" id="btn-buy-shield">UNLOCK SHIELD (500G)</button>
             </div>
 
-            <button class="btn-ui" id="btn-cheat-gold" style="background: #333; color: #fff; box-shadow: none; font-size: 12px; padding: 6px 12px;">ADD TEST GOLD (+1000)</button>
+            <button class="btn-ui btn-cheat" id="btn-cheat-gold">DEBUG: ADD TEST GOLD (+1000)</button>
         </div>
         <button class="btn-ui btn-main-start" id="btn-start-game">START GAME</button>
     </div>
 
+    <!-- In-Game Multi-Touch HUD Layer Layout -->
     <div id="ingame-ui-container">
         <div class="joystick-zone" id="joy-zone">
             <div class="joystick-handle" id="joy-handle"></div>
         </div>
         <div class="action-zone">
             <button class="btn-action" id="btn-dash">DASH</button>
-            <button class="btn-action" id="btn-weapon" style="border-color: #00ffcc; background: rgba(0,255,204,0.2);">SHIELD</button>
+            <button class="btn-action" id="btn-weapon">SHIELD</button>
         </div>
     </div>
 
-    <!-- 🚨 Loaded linearly to completely bypass local CORS constraints -->
+    <!-- Linear Script Ordering to Prevent Structural Deadlocks -->
     <script src="GameUI.js"></script>
-    <script src="Game3D.js"></script>
+    <script src="MainScene.js"></script>
+    <script src="PhysicsEngine.js"></script>
     <script src="GameShop.js"></script>
-    <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            window.gameUI = new GameUI();
-            window.gameShop = new GameShop();
-            window.game3D = new Game3D();
-            console.log("All systems online.");
-        });
-    </script>
+    <script src="App.js"></script>
 </body>
 </html>
