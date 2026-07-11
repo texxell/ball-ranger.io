@@ -1,13 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>BallRanger.io - 3D 铁血乱斗</title>
-    
-    <!-- 🚨 强行注入全球最稳的 Three.js 核心渲染库（CDN） -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>BallRanger.io</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
     <style>
         * {
             margin: 0;
@@ -21,686 +18,215 @@
             height: 100%;
             overflow: hidden;
             background-color: #0a0f1d;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-
-        /* 3D 物理画布容器：用绝对视口死死撑开，严防 0px 塌陷 */
         #three-canvas-container {
+            width: 100%;
+            height: 100%;
             position: absolute;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
             z-index: 1;
         }
-
-        /* 大厅 HUD 顶层 UI */
         .overlay-layer {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             z-index: 10;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
+            background: rgba(10, 15, 29, 0.85);
             padding: 20px;
-            pointer-events: none; /* 让鼠标/触控能穿透到 3D 层 */
         }
-
-        .interactive-ui {
-            pointer-events: auto; /* 恢复 UI 元素的点击响应 */
+        .lobby-dashboard {
+            background: rgba(20, 26, 46, 0.9);
+            border: 2px solid #00ffcc;
+            border-radius: 16px;
+            padding: 25px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
+            margin-bottom: 20px;
         }
-
-        /* 顶部资产栏 */
-        .top-hud {
+        .shop-box {
+            background: rgba(30, 38, 64, 0.8);
+            border: 1px solid #3399ff;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .hud-header {
+            position: absolute;
+            top: 20px;
             width: 100%;
+            padding: 0 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            z-index: 15;
+            pointer-events: none;
         }
-        .coin-box {
-            background: rgba(20, 26, 46, 0.85);
-            border: 2px solid #ffcc00;
+        .hud-coin {
+            background: rgba(20, 26, 46, 0.8);
+            border: 1px solid #ffcc00;
             padding: 8px 16px;
             border-radius: 20px;
             color: #ffcc00;
             font-weight: bold;
             font-size: 18px;
-            box-shadow: 0 0 15px rgba(255, 204, 0, 0.3);
+            pointer-events: auto;
         }
-
-        /* 居中大厅核心控制面板 */
-        .lobby-dashboard {
-            background: rgba(20, 26, 46, 0.95);
-            border: 2px solid #00ffcc;
-            border-radius: 16px;
-            padding: 25px;
-            width: 90%;
-            max-width: 440px;
-            text-align: center;
-            box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
-            transition: opacity 0.3s ease;
-        }
-
-        .lobby-title {
-            color: #00ffcc;
-            font-size: 26px;
-            margin-bottom: 15px;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(0,255,204,0.5);
-        }
-
-        /* 广告倍率选择区 */
-        .ad-selector-title {
-            color: #8c9ba5;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-        .ad-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .ad-card {
-            background: #1a2238;
-            border: 2px solid #334466;
-            border-radius: 10px;
-            padding: 12px;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .ad-card.active {
-            border-color: #ff3366;
-            background: rgba(255, 51, 102, 0.15);
-            box-shadow: 0 0 15px rgba(255, 51, 102, 0.4);
-        }
-        .ad-card h4 { font-size: 18px; color: #ff3366; margin-bottom: 4px; }
-        .ad-card p { font-size: 12px; color: #8c9ba5; }
-
-        /* 武器军火库区 */
-        .weapon-shop {
-            border-top: 1px solid #334466;
-            padding-top: 15px;
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        .shop-title { color: #fff; font-size: 14px; margin-bottom: 10px; }
-        .shop-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #141a2e;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-        .shop-item span { color: #fff; font-size: 14px; }
-        .btn-buy {
-            background: #00ffcc;
+        .btn-ui {
+            background: linear-gradient(135deg, #00ffcc, #3399ff);
             border: none;
-            color: #000;
-            padding: 6px 12px;
-            border-radius: 6px;
+            color: #0a0f1d;
+            padding: 12px 24px;
+            font-size: 16px;
             font-weight: bold;
+            border-radius: 8px;
             cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0, 255, 204, 0.3);
         }
-        .btn-buy.disabled {
-            background: #445566 !important;
-            color: #8899aa !important;
+        .btn-ui:active {
+            transform: scale(0.95);
+        }
+        .btn-ui.disabled {
+            background: #445175;
+            color: #8899bb;
+            box-shadow: none;
             cursor: not-allowed;
         }
-
-        /* 绝对核心：突出的战场发射按钮 */
-        .btn-start-launch {
-            background: linear-gradient(135deg, #ff3366, #ff0055);
-            border: none;
-            color: white;
-            width: 100%;
-            padding: 16px;
-            font-size: 20px;
-            font-weight: bold;
-            border-radius: 12px;
-            cursor: pointer;
-            box-shadow: 0 5px 20px rgba(255, 51, 102, 0.4);
-            letter-spacing: 1px;
+        .btn-main-start {
+            font-size: 24px;
+            padding: 16px 48px;
+            border-radius: 30px;
+            background: linear-gradient(135deg, #ff3366, #ffcc00);
+            box-shadow: 0 6px 25px rgba(2ff, 51, 102, 0.4);
         }
-
-        /* 局内多点触控与武器释放轮盘 */
-        .battle-hud {
+        #ingame-ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            display: none; /* 初始隐藏，进场才给显示 */
-            justify-content: space-between;
-            align-items: flex-end;
+            height: 100%;
+            z-index: 5;
+            display: none;
+            pointer-events: none;
         }
-
-        /* 手搓左手模拟摇杆底座 */
         .joystick-zone {
-            width: 140px;
-            height: 140px;
-            background: rgba(255,255,255,0.06);
-            border: 2px solid rgba(255,255,255,0.2);
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
-            position: relative;
+            pointer-events: auto;
         }
-        .joystick-stick {
+        .joystick-handle {
+            position: absolute;
+            top: 50px;
+            left: 50px;
             width: 50px;
             height: 50px;
-            background: linear-gradient(135deg, #00ffcc, #00b399);
+            background: #00ffcc;
             border-radius: 50%;
-            position: absolute;
-            top: 45px;
-            left: 45px;
-            box-shadow: 0 0 15px rgba(0,255,204,0.6);
+            box-shadow: 0 0 15px #00ffcc;
         }
-
-        /* 右手高阶武器技能轮盘 */
         .action-zone {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
             display: flex;
-            flex-direction: column;
-            gap: 15px;
+            gap: 20px;
+            pointer-events: auto;
         }
         .btn-action {
-            width: 75px;
-            height: 75px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
             border: 2px solid #ff3366;
-            background: rgba(255, 51, 102, 0.1);
-            color: white;
+            background: rgba(255, 51, 102, 0.2);
+            color: #fff;
             font-weight: bold;
             font-size: 14px;
             cursor: pointer;
-            box-shadow: 0 0 15px rgba(255,51,102,0.2);
         }
-        .btn-action.shield {
-            border-color: #3399ff;
-            background: rgba(51, 153, 255, 0.1);
+        .btn-action:active {
+            background: #ff3366;
         }
-
-        /* 全局高阶屏幕正中央霓虹警示字幕 */
-        #center-alert-container {
+        #center-alert {
             position: absolute;
-            top: 25%;
+            top: 30%;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 100;
             color: #ff3366;
-            font-size: 28px;
-            font-weight: 900;
-            text-shadow: 0 0 15px rgba(255,51,102,0.8);
+            font-size: 32px;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 51, 102, 0.8);
+            z-index: 20;
+            display: none;
             pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.15s ease;
-            text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <!-- 1. 纯 3D 渲染画布底座 -->
     <div id="three-canvas-container"></div>
 
-    <!-- 2. 全局高光警示弹窗 -->
-    <div id="center-alert-container">DASH BURST!!!</div>
-
-    <!-- 3. 大厅 HUD 复合图层 -->
-    <div class="overlay-layer">
-        
-        <!-- 顶部账本区 -->
-        <div class="top-hud">
-            <div class="coin-box interactive-ui" id="hud-coin-amount">0G</div>
-            <button class="btn-buy interactive-ui" id="btn-cheat-gold" style="background:#ffcc00;color:#000;">+1000G 调试金币</button>
-        </div>
-
-        <!-- 中部大厅：看广告翻倍与武器解锁面板 -->
-        <div class="lobby-dashboard interactive-ui" id="lobby-panel">
-            <h1 class="lobby-title">BALL RANGER.IO</h1>
-            
-            <div class="ad-selector-title">─ 进场前选择激励广告翻倍 ─</div>
-            <div class="ad-grid">
-                <div class="ad-card active" id="ad-x2" data-mult="2">
-                    <h4>X2 广告体积</h4>
-                    <p>观看 15s 获得双倍对撞吨位</p>
-                </div>
-                <div class="ad-card" id="ad-x5" data-mult="5">
-                    <h4>X5 黄金体积</h4>
-                    <p>超长重磅广告 获得5倍巨无霸身躯</p>
-                </div>
-            </div>
-
-            <div class="weapon-shop">
-                <div class="shop-title">局内高阶防线备弹库</div>
-                <div class="shop-item">
-                    <span>🛡️ 能动粒子神盾 (局内按键解锁)</span>
-                    <button class="btn-buy" id="btn-buy-shield">500G 解锁</button>
-                </div>
-            </div>
-
-            <button class="btn-start-launch" id="btn-start-game">START GAME</button>
-        </div>
-
-        <!-- 底部战局：多点触控与武器热键 -->
-        <div class="battle-hud">
-            <!-- 左手区域 -->
-            <div class="joystick-zone interactive-ui" id="joystick-container">
-                <div class="joystick-stick" id="joystick-knob"></div>
-            </div>
-            <!-- 右手区域 -->
-            <div class="action-zone interactive-ui">
-                <button class="btn-action shield" id="btn-trigger-shield">SHIELD</button>
-                <button class="btn-action" id="btn-trigger-dash">DASH</button>
-            </div>
-        </div>
-
+    <div class="hud-header">
+        <div class="hud-coin" id="hud-coin-amount">0G</div>
     </div>
 
-    <!-- ==========================================================================
-         🚨 终极核能总装脚本：将 UI、物理、存储熔为一体，杜绝一切异步死锁
-         ========================================================================== -->
+    <div id="center-alert">ALERT</div>
+
+    <div class="overlay-layer" id="lobby-layer">
+        <div class="lobby-dashboard">
+            <h1 style="color: #fff; margin-bottom: 10px; letter-spacing: 2px;">BALLRANGER.IO</h1>
+            <p style="color: #8899bb;">Select multiplier ad options below to buff mass:</p>
+            
+            <div style="margin: 20px 0; display: flex; justify-content: center; gap: 15px;">
+                <button class="btn-ui" id="btn-ad-x2">AD VOL x2</button>
+                <button class="btn-ui" id="btn-ad-x5">AD VOL x5</button>
+            </div>
+
+            <div class="shop-box">
+                <h3 style="color: #3399ff; margin-bottom: 10px;">WEAPON SHOP</h3>
+                <button class="btn-ui" id="btn-buy-shield" style="width: 100%;">SHIELD (500G)</button>
+            </div>
+
+            <button class="btn-ui" id="btn-cheat-gold" style="background: #333; color: #fff; box-shadow: none; font-size: 12px; padding: 6px 12px;">ADD TEST GOLD (+1000)</button>
+        </div>
+        <button class="btn-ui btn-main-start" id="btn-start-game">START GAME</button>
+    </div>
+
+    <div id="ingame-ui-container">
+        <div class="joystick-zone" id="joy-zone">
+            <div class="joystick-handle" id="joy-handle"></div>
+        </div>
+        <div class="action-zone">
+            <button class="btn-action" id="btn-dash">DASH</button>
+            <button class="btn-action" id="btn-weapon" style="border-color: #00ffcc; background: rgba(0,255,204,0.2);">SHIELD</button>
+        </div>
+    </div>
+
+    <!-- 🚨 Loaded linearly to completely bypass local CORS constraints -->
+    <script src="GameUI.js"></script>
+    <script src="Game3D.js"></script>
+    <script src="GameShop.js"></script>
     <script>
         window.addEventListener('DOMContentLoaded', () => {
-            
-            // ==========================================
-            // 【第一部分】持久化记账与大厅 UI 驱动模块
-            // ==========================================
-            let walletGold = parseInt(localStorage.getItem('br_wallet_gold')) || 0;
-            let isShieldUnlocked = localStorage.getItem('br_unlocked_shield') === 'true';
-            let activeMultiplier = 2; // 默认看 X2 广告
-
-            const hudCoinAmount = document.getElementById('hud-coin-amount');
-            const btnCheatGold = document.getElementById('btn-cheat-gold');
-            const btnBuyShield = document.getElementById('btn-buy-shield');
-            const adX2 = document.getElementById('ad-x2');
-            const adX5 = document.getElementById('ad-x5');
-            const btnStartGame = document.getElementById('btn-start-game');
-            const lobbyPanel = document.getElementById('lobby-panel');
-            const battleHud = document.querySelector('.battle-hud');
-            const alertBox = document.getElementById('center-alert-container');
-
-            // 初始化钱包与神盾拥有状态显示
-            hudCoinAmount.innerText = walletGold + "G";
-            updateShieldButtonDisplay();
-
-            function triggerAlert(msg) {
-                alertBox.innerText = msg;
-                alertBox.style.opacity = '1';
-                setTimeout(() => { alertBox.style.opacity = '0'; }, 1500);
-            }
-
-            function updateShieldButtonDisplay() {
-                if (isShieldUnlocked) {
-                    btnBuyShield.classList.add('disabled');
-                    btnBuyShield.innerText = "🛡️ 已拥有";
-                    btnBuyShield.setAttribute('disabled', 'true');
-                }
-            }
-
-            // 广告选项卡切换
-            adX2.addEventListener('click', () => {
-                adX2.classList.add('active'); adX5.classList.remove('active'); activeMultiplier = 2;
-            });
-            adX5.addEventListener('click', () => {
-                adX5.classList.add('active'); adX2.classList.remove('active'); activeMultiplier = 5;
-            });
-
-            // 充钱测试
-            btnCheatGold.addEventListener('click', () => {
-                walletGold += 1000;
-                localStorage.setItem('br_wallet_gold', walletGold);
-                hudCoinAmount.innerText = walletGold + "G";
-                triggerAlert("调试金币 +1000G 成功！");
-            });
-
-            // 购买神盾永久解锁
-            btnBuyShield.addEventListener('click', () => {
-                if (isShieldUnlocked) return;
-                if (walletGold < 500) {
-                    triggerAlert("金币不足！需要 500G！");
-                    return;
-                }
-                walletGold -= 500;
-                isShieldUnlocked = true;
-                localStorage.setItem('br_wallet_gold', walletGold);
-                localStorage.setItem('br_unlocked_shield', 'true');
-                hudCoinAmount.innerText = walletGold + "G";
-                updateShieldButtonDisplay();
-                triggerAlert("永久解锁神盾武器！");
-            });
-
-
-            // ==========================================
-            // 【第二部分】原生态 3D 刚体弹性碰撞物理引擎
-            // ==========================================
-            let scene, camera, renderer, animationFrameId;
-            const arenaRadius = 15;
-            const friction = 0.98;
-            const baseSpeed = 0.2;
-            let actors = [];
-            let playerActor = null;
-            let dashActive = false;
-            let dashTimer = 0;
-
-            // 操控输入方向量
-            let joystickInputX = 0;
-            let joystickInputZ = 0;
-
-            function init3DGame(multiplier) {
-                const container = document.getElementById('three-canvas-container');
-                
-                // 强制抓取全屏分辨率，抵抗任何缩放
-                const width = window.innerWidth;
-                const height = window.innerHeight;
-
-                scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x0a0f1d);
-
-                camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
-                camera.position.set(0, 18, 14);
-                camera.lookAt(0, 0, -2);
-
-                renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-                renderer.setSize(width, height);
-                renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-                container.appendChild(renderer.domElement);
-
-                // 灯光
-                scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-                const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                dirLight.position.set(5, 20, 5);
-                scene.add(dirLight);
-
-                // 建造赛博霓虹决斗场
-                const floorGeo = new THREE.CircleGeometry(arenaRadius, 64);
-                const floorMat = new THREE.MeshStandardMaterial({ color: 0x111625, roughness: 0.4, metalness: 0.8 });
-                const floor = new THREE.Mesh(floorGeo, floorMat);
-                floor.rotation.x = -Math.PI / 2;
-                scene.add(floor);
-
-                const wallGeo = new THREE.RingGeometry(arenaRadius - 0.1, arenaRadius + 0.1, 64);
-                const wallMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, side: THREE.DoubleSide });
-                const wall = new THREE.Mesh(wallGeo, wallMat);
-                wall.rotation.x = Math.PI / 2;
-                wall.position.y = 0.05;
-                scene.add(wall);
-
-                // 生成 5 人乱斗阵容 (1玩家 + 4智能机器人)
-                const colors = [0xff3366, 0x3399ff, 0xffcc00, 0x99ff33, 0xcc33ff];
-                const names = ["YOU", "AI_Alpha", "AI_Beta", "AI_Gamma", "AI_Omega"];
-
-                // 计算玩家受广告加成后的真实半径
-                const playerScale = 1 + (multiplier - 1) * 0.15; // X5 广告体积会变极大
-
-                for (let i = 0; i < 5; i++) {
-                    const isPlayer = (i === 0);
-                    const rad = isPlayer ? (0.8 * playerScale) : 0.7;
-
-                    const geo = new THREE.SphereGeometry(rad, 32, 32);
-                    const mat = new THREE.MeshStandardMaterial({ color: colors[i], roughness: 0.1, metalness: 0.9 });
-                    const mesh = new THREE.Mesh(geo, mat);
-
-                    const angle = (i / 5) * Math.PI * 2;
-                    const dist = 6 + Math.random() * 3;
-                    mesh.position.set(Math.cos(angle) * dist, rad, Math.sin(angle) * dist);
-                    scene.add(mesh);
-
-                    const actor = {
-                        id: i,
-                        name: names[i],
-                        isPlayer: isPlayer,
-                        mesh: mesh,
-                        radius: rad,
-                        mass: rad * rad, // 质量与面积挂钩，大球撞击力恐怖
-                        vx: 0, vz: 0,
-                        isDead: false
-                    };
-                    actors.push(actor);
-                    if (isPlayer) playerActor = actor;
-                }
-
-                // 横竖屏与缩放重绘防御
-                window.addEventListener('resize', () => {
-                    const w = window.innerWidth;
-                    const h = window.innerHeight;
-                    camera.aspect = w / h;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(w, h);
-                });
-
-                // 点火大循环
-                gameLoop();
-            }
-
-            function gameLoop() {
-                animationFrameId = requestAnimationFrame(gameLoop);
-
-                // 1. AI 机器人猎杀逻辑
-                actors.forEach(actor => {
-                    if (actor.isPlayer || actor.isDead) return;
-                    let closest = null, minDist = 999;
-                    actors.forEach(t => {
-                        if (t.id === actor.id || t.isDead) return;
-                        let d = Math.sqrt(Math.pow(t.mesh.position.x - actor.mesh.position.x, 2) + Math.pow(t.mesh.position.z - actor.mesh.position.z, 2));
-                        if (d < minDist) { minDist = d; closest = t; }
-                    });
-                    if (closest) {
-                        let dx = closest.mesh.position.x - actor.mesh.position.x;
-                        let dz = closest.mesh.position.z - actor.mesh.position.z;
-                        let len = Math.sqrt(dx*dx + dz*dz) || 1;
-                        actor.vx += (dx / len) * baseSpeed * 0.6;
-                        actor.vz += (dz / len) * baseSpeed * 0.6;
-                    }
-                });
-
-                // 2. 玩家操控与物理速度结算
-                actors.forEach(actor => {
-                    if (actor.isDead) return;
-
-                    if (actor.isPlayer) {
-                        let speedMod = baseSpeed;
-                        if (dashActive) {
-                            speedMod *= 3.5;
-                            dashTimer--;
-                            if (dashTimer <= 0) dashActive = false;
-                        }
-                        actor.vx += joystickInputX * speedMod;
-                        actor.vz += joystickInputZ * speedMod;
-                    }
-
-                    actor.vx *= friction;
-                    actor.vz *= friction;
-                    actor.mesh.position.x += actor.vx;
-                    actor.mesh.position.z += actor.vz;
-
-                    // 决斗场边缘出局与反弹判定
-                    let distFromCenter = Math.sqrt(actor.mesh.position.x*actor.mesh.position.x + actor.mesh.position.z*actor.mesh.position.z);
-                    if (distFromCenter > arenaRadius - actor.radius) {
-                        if (distFromCenter > arenaRadius + 1.2) {
-                            actor.isDead = true;
-                            scene.remove(actor.mesh);
-                            if (actor.isPlayer) {
-                                triggerAlert("GAME OVER! 你掉下去了!");
-                                setTimeout(() => { location.reload(); }, 2500);
-                            } else {
-                                triggerAlert(`${actor.name} 被无情撞飞!`);
-                                walletGold += 200; // 每撞飞一个奖 200G
-                                localStorage.setItem('br_wallet_gold', walletGold);
-                                hudCoinAmount.innerText = walletGold + "G";
-                            }
-                        } else {
-                            // 边缘反弹
-                            let nx = actor.mesh.position.x / distFromCenter;
-                            let nz = actor.mesh.position.z / distFromCenter;
-                            let dot = actor.vx * nx + actor.vz * nz;
-                            if (dot > 0) {
-                                actor.vx -= 1.5 * dot * nx;
-                                actor.vz -= 1.5 * dot * nz;
-                            }
-                        }
-                    }
-                });
-
-                // 3. 🔥 核心：手搓双重循环完美的刚体弹性对撞
-                for (let i = 0; i < actors.length; i++) {
-                    for (let j = i + 1; j < actors.length; j++) {
-                        let a = actors[i], b = actors[j];
-                        if (a.isDead || b.isDead) continue;
-
-                        let dx = b.mesh.position.x - a.mesh.position.x;
-                        let dz = b.mesh.position.z - a.mesh.position.z;
-                        let distance = Math.sqrt(dx*dx + dz*dz) || 0.1;
-                        let minDist = a.radius + b.radius;
-
-                        if (distance < minDist) {
-                            // 重叠修复
-                            let overlap = minDist - distance;
-                            a.mesh.position.x -= (dx / distance) * overlap * 0.5;
-                            a.mesh.position.z -= (dz / distance) * overlap * 0.5;
-                            b.mesh.position.x += (dx / distance) * overlap * 0.5;
-                            b.mesh.position.z += (dz / distance) * overlap * 0.5;
-
-                            // 弹性速度矢量交换
-                            let nx = dx / distance, nz = dz / distance;
-                            let kx = a.vx - b.vx, kz = a.vz - b.vz;
-                            let p = 2 * (nx * kx + nz * kz) / (a.mass + b.mass);
-
-                            a.vx -= p * b.mass * nx; a.vz -= p * b.mass * nz;
-                            b.vx += p * a.mass * nx; b.vz += p * a.mass * nz;
-
-                            if ((a.isPlayer || b.isPlayer) && navigator.vibrate) {
-                                navigator.vibrate(20);
-                            }
-                        }
-                    }
-                }
-
-                // 4. 摄像机丝滑贴地平滑LERP跟踪玩家
-                if (playerActor && !playerActor.isDead) {
-                    camera.position.x = THREE.MathUtils.lerp(camera.position.x, playerActor.mesh.position.x, 0.05);
-                    camera.position.z = THREE.MathUtils.lerp(camera.position.z, playerActor.mesh.position.z + 14, 0.05);
-                }
-
-                renderer.render(scene, camera);
-            }
-
-
-            // ==========================================
-            // 【第三部分】多点触控防死锁操控中枢模块
-            // ==========================================
-            const joystickContainer = document.getElementById('joystick-container');
-            const joystickKnob = document.getElementById('joystick-knob');
-            let joystickTouchId = null;
-            let joystickCenterX = 0, joystickCenterY = 0;
-            const maxRadius = 45;
-
-            // 点击 START GAME 进场点火
-            btnStartGame.addEventListener('click', () => {
-                lobbyPanel.style.display = 'none';
-                battleHud.style.display = 'flex'; // 唤醒局内操作盘
-                init3DGame(activeMultiplier);     // 注入看广告获取的体积翻倍数据
-                triggerAlert("战斗开始！揉碎它们！");
-            });
-
-            // 摇杆触摸开始
-            joystickContainer.addEventListener('touchstart', (e) => {
-                if (joystickTouchId !== null) return;
-                const touch = e.changedTouches[0];
-                joystickTouchId = touch.identifier;
-                const rect = joystickContainer.getBoundingClientRect();
-                joystickCenterX = rect.left + rect.width / 2;
-                joystickCenterY = rect.top + rect.height / 2;
-            });
-
-            // 摇杆触摸移动
-            window.addEventListener('touchmove', (e) => {
-                if (joystickTouchId === null) return;
-                for (let i = 0; i < e.touches.length; i++) {
-                    if (e.touches[i].identifier === joystickTouchId) {
-                        const touch = e.touches[i];
-                        let dx = touch.clientX - joystickCenterX;
-                        let dy = touch.clientY - joystickCenterY;
-                        let dist = Math.sqrt(dx*dx + dy*dy);
-
-                        if (dist > maxRadius) {
-                            dx = (dx / dist) * maxRadius;
-                            dy = (dy / dist) * maxRadius;
-                            dist = maxRadius;
-                        }
-
-                        // 搬移摇杆视觉滑块
-                        joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
-
-                        // 瞬间转化为 3D 物理世界的 X轴 和 Z轴 水平推力
-                        joystickInputX = dx / maxRadius;
-                        joystickInputZ = dy / maxRadius;
-                    }
-                }
-            }, { passive: false });
-
-            // 摇杆触摸结束
-            const endJoystick = (e) => {
-                if (joystickTouchId === null) return;
-                for (let i = 0; i < e.changedTouches.length; i++) {
-                    if (e.changedTouches[i].identifier === joystickTouchId) {
-                        joystickTouchId = null;
-                        joystickKnob.style.transform = 'translate(0px, 0px)';
-                        joystickInputX = 0;
-                        joystickInputZ = 0;
-                    }
-                }
-            };
-            window.addEventListener('touchend', endJoystick);
-            window.addEventListener('touchcancel', endJoystick);
-
-            // 局内 DASH 冲刺手键
-            document.getElementById('btn-trigger-dash').addEventListener('click', () => {
-                if (playerActor && playerActor.isDead) return;
-                if (dashActive) return;
-                dashActive = true;
-                dashTimer = 25; // 持续冲刺爆发 25 帧
-                triggerAlert("DASH 喷射爆发!");
-            });
-
-            // 局内 神盾释放按键
-            document.getElementById('btn-trigger-shield').addEventListener('click', () => {
-                if (!isShieldUnlocked) {
-                    triggerAlert("去商店解锁神盾武器！");
-                    return;
-                }
-                triggerAlert("🛡️ 神盾防线启动！(伤害免疫)");
-                // 预留机制：此处可直接为 playerActor 附加一个防御视觉 Mesh
-            });
-
-            // ==========================================
-            // 【鼠标/键盘兼容】确保 PC 电脑端同样满血畅玩
-            // ==========================================
-            let isMouseDown = false;
-            joystickContainer.addEventListener('mousedown', (e) => {
-                isMouseDown = true;
-                const rect = joystickContainer.getBoundingClientRect();
-                joystickCenterX = rect.left + rect.width / 2;
-                joystickCenterY = rect.top + rect.height / 2;
-            });
-            window.addEventListener('mousemove', (e) => {
-                if (!isMouseDown) return;
-                let dx = e.clientX - joystickCenterX;
-                let dy = e.clientY - joystickCenterY;
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist > maxRadius) { dx = (dx / dist) * maxRadius; dy = (dy / dist) * maxRadius; }
-                joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
-                joystickInputX = dx / maxRadius;
-                joystickInputZ = dy / maxRadius;
-            });
-            window.addEventListener('mouseup', () => {
-                if (!isMouseDown) return;
-                isMouseDown = false;
-                joystickKnob.style.transform = 'translate(0px, 0px)';
-                joystickInputX = 0; joystickInputZ = 0;
-            });
-
+            window.gameUI = new GameUI();
+            window.gameShop = new GameShop();
+            window.game3D = new Game3D();
+            console.log("All systems online.");
         });
     </script>
 </body>
