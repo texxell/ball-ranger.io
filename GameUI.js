@@ -5,6 +5,7 @@ class GameUI {
         this.hudCoinAmount = document.getElementById('hud-coin-amount');
         this.centerAlert = document.getElementById('center-alert');
         
+        this.btnX1 = document.getElementById('btn-ad-x1');
         this.btnX2 = document.getElementById('btn-ad-x2');
         this.btnX5 = document.getElementById('btn-ad-x5');
         this.btnStart = document.getElementById('btn-start-game');
@@ -29,15 +30,18 @@ class GameUI {
     }
 
     initUIListeners() {
-        this.btnX2.addEventListener('click', () => {
-            this.selectedMultiplier = 2;
-            this.triggerCenterAlert("VOLUME MULTIPLIER: X2");
-        });
+        const updateMultiplierButtons = (activeBtn, value) => {
+            this.btnX1.classList.remove('active');
+            this.btnX2.classList.remove('active');
+            this.btnX5.classList.remove('active');
+            activeBtn.classList.add('active');
+            this.selectedMultiplier = value;
+            this.triggerCenterAlert("VOLUME BUFF: X" + value);
+        };
 
-        this.btnX5.addEventListener('click', () => {
-            this.selectedMultiplier = 5;
-            this.triggerCenterAlert("VOLUME MULTIPLIER: X5");
-        });
+        this.btnX1.addEventListener('click', () => updateMultiplierButtons(this.btnX1, 1));
+        this.btnX2.addEventListener('click', () => updateMultiplierButtons(this.btnX2, 2));
+        this.btnX5.addEventListener('click', () => updateMultiplierButtons(this.btnX5, 5));
 
         this.btnStart.addEventListener('click', () => {
             this.lobbyLayer.style.display = 'none';
@@ -47,25 +51,37 @@ class GameUI {
             }
         });
 
-        this.btnDash.addEventListener('click', () => {
+        this.btnDash.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (this.onDashTriggerCallback) this.onDashTriggerCallback();
+        });
+        this.btnDash.addEventListener('mousedown', (e) => {
             if (this.onDashTriggerCallback) this.onDashTriggerCallback();
         });
 
-        this.btnWeapon.addEventListener('click', () => {
-            if (!this.isShieldUnlocked) {
-                this.triggerCenterAlert("UNLOCK SHIELD IN SHOP FIRST!");
-                return;
-            }
-            if (this.onWeaponTriggerCallback) this.onWeaponTriggerCallback("shield");
+        this.btnWeapon.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            this.handleWeaponClick();
         });
+        this.btnWeapon.addEventListener('mousedown', () => {
+            this.handleWeaponClick();
+        });
+    }
+
+    handleWeaponClick() {
+        if (!this.isShieldUnlocked) {
+            this.triggerCenterAlert("UNLOCK SHIELD IN SHOP FIRST!");
+            return;
+        }
+        if (this.onWeaponTriggerCallback) this.onWeaponTriggerCallback("shield");
     }
 
     initJoystick() {
         let activeTouchId = null;
         const rect = this.joyZone.getBoundingClientRect();
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        const maxRadius = rect.width / 2;
+        const centerX = 140 / 2;
+        const centerY = 140 / 2;
+        const maxRadius = 140 / 2;
 
         const handleMove = (clientX, clientY) => {
             const zoneRect = this.joyZone.getBoundingClientRect();
@@ -89,6 +105,7 @@ class GameUI {
         };
 
         this.joyZone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
             if (activeTouchId !== null) return;
             const touch = e.changedTouches[0];
             activeTouchId = touch.identifier;
@@ -96,6 +113,7 @@ class GameUI {
         });
 
         this.joyZone.addEventListener('touchmove', (e) => {
+            e.preventDefault();
             for (let i = 0; i < e.touches.length; i++) {
                 if (e.touches[i].identifier === activeTouchId) {
                     handleMove(e.touches[i].clientX, e.touches[i].clientY);
